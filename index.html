@@ -15,12 +15,15 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #a8a29e; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #78716c; }
-        .loader { border: 8px solid #f3f3f3; border-radius: 50%; border-top: 8px solid #3b82f6; width: 60px; height: 60px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         th, td { padding: 0.75rem 1rem; text-align: left; }
         .modal { transition: opacity 0.3s ease; }
         .year-btn { transition: all 0.2s ease-in-out; }
         .year-btn.active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        /* Disabled state for buttons and filters */
+        :disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body class="antialiased text-slate-700">
@@ -40,8 +43,15 @@
             </div>
         </header>
 
-        <!-- Year Filter Buttons -->
-        <div id="year-filter-container" class="mb-6 flex flex-wrap items-center gap-2"></div>
+        <!-- Year Filter Buttons & Loader -->
+        <div class="mb-6 flex flex-wrap items-center gap-4">
+            <div id="year-filter-container" class="flex flex-wrap items-center gap-2"></div>
+            <!-- NEW INLINE LOADER -->
+            <div id="inline-loader" class="hidden items-center gap-3 px-4 py-2 text-slate-600">
+                <div class="h-5 w-5 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600"></div>
+                <span class="font-semibold text-sm">Sedang memuatkan...</span>
+            </div>
+        </div>
 
         <!-- Filters Section -->
         <div class="bg-white p-6 rounded-xl shadow-md mb-8">
@@ -65,7 +75,6 @@
         </div>
 
         <!-- Data Display Section -->
-        <div id="loader-container" class="flex justify-center items-center py-20"><div class="loader"></div></div>
         <div id="table-wrapper" class="bg-white rounded-xl shadow-md overflow-hidden hidden"><div class="overflow-x-auto"><table class="w-full table-fixed"><thead class="bg-slate-100 text-slate-600 uppercase text-xs"><tr><th class="w-12 text-center">Bil.</th><th class="w-1/5">Penyedia Laporan</th><th class="w-1/6">Daerah</th><th class="w-1/4 whitespace-normal">Nama Organisasi</th><th class="w-1/6">Tarikh Pelaksanaan</th><th class="w-auto whitespace-normal">Perkhidmatan</th><th class="w-28 text-center">Tindakan</th></tr></thead><tbody id="data-container" class="divide-y divide-slate-200 text-xs md:text-sm"></tbody></table></div></div>
         <div id="no-data" class="hidden text-center py-20"><h3 class="text-2xl font-semibold text-slate-500">Tiada Data Ditemui</h3><p class="text-slate-400 mt-2">Sila laraskan penapis anda.</p></div>
 
@@ -80,7 +89,7 @@
             
             // --- DOM ELEMENTS ---
             const dataContainer = document.getElementById('data-container');
-            const loader = document.getElementById('loader-container');
+            const inlineLoader = document.getElementById('inline-loader');
             const noDataMessage = document.getElementById('no-data');
             const tableWrapper = document.getElementById('table-wrapper');
             const yearFilterContainer = document.getElementById('year-filter-container');
@@ -107,11 +116,16 @@
             Chart.register(ChartDataLabels);
 
             // --- FUNCTIONS ---
+            function toggleControls(disabled) {
+                Object.values(filters).forEach(f => f.disabled = disabled);
+                resetButton.disabled = disabled;
+                yearFilterContainer.querySelectorAll('button').forEach(btn => btn.disabled = disabled);
+            }
 
             async function fetchAndRenderData() {
-                loader.style.display = 'flex';
-                tableWrapper.style.display = 'none';
-                noDataMessage.style.display = 'none';
+                inlineLoader.classList.remove('hidden');
+                inlineLoader.classList.add('flex');
+                toggleControls(true);
 
                 const params = new URLSearchParams({
                     year: selectedYear,
@@ -136,8 +150,11 @@
                     console.error('Ralat memuatkan data:', error);
                     noDataMessage.innerHTML = `<h3 class="text-2xl font-semibold text-red-500">Gagal Memuatkan Data</h3><p class="text-slate-400 mt-2">${error.message}</p>`;
                     noDataMessage.style.display = 'block';
+                    tableWrapper.style.display = 'none';
                 } finally {
-                    loader.style.display = 'none';
+                    inlineLoader.classList.add('hidden');
+                    inlineLoader.classList.remove('flex');
+                    toggleControls(false);
                 }
             }
             
