@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Papan Pemuka S3PTIS</title>
+    <title>Dashboard S3PTIS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js and Datalabels Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -19,75 +18,98 @@
         .modal { transition: opacity 0.3s ease; }
         .year-btn { transition: all 0.2s ease-in-out; }
         .year-btn.active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-        /* Disabled state for buttons and filters */
-        :disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
+        :disabled { cursor: not-allowed; opacity: 0.6; }
     </style>
 </head>
 <body class="antialiased text-slate-700">
 
-    <!-- Main Container -->
-    <div class="container mx-auto p-4 md:p-8">
-        <!-- Header -->
-        <header class="bg-white p-5 rounded-xl shadow-md mb-8 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="bg-blue-600 text-white p-3 rounded-lg shadow-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+    <!-- Login Page -->
+    <div id="login-page" class="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-4">
+        <div class="w-full max-w-7xl mx-auto">
+            <header class="text-center mb-10">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-slate-800">Dashboard S3PTIS</h1>
+                <p class="mt-2 text-lg text-slate-500">Sistem Pengurusan Pemusatan Perkhidmatan Teknikal ICT Kedah</p>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <!-- Login Module -->
+                <div class="lg:col-span-2 bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6">Log Masuk</h2>
+                    <form id="login-form">
+                        <div class="space-y-5">
+                            <div>
+                                <label for="username" class="block text-sm font-medium text-slate-600">Nama Pengguna</label>
+                                <input type="text" id="username" name="username" class="mt-1 block w-full px-4 py-3 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                            <div>
+                                <label for="password" class="block text-sm font-medium text-slate-600">Kata Laluan</label>
+                                <input type="password" id="password" name="password" class="mt-1 block w-full px-4 py-3 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                            <p id="login-error" class="text-sm text-red-600 hidden"></p>
+                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300">Log Masuk</button>
+                        </div>
+                    </form>
                 </div>
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-800">Dashboard S3PTIS</h1>
-                    <p class="mt-1 text-sm text-slate-500">Pasukan Teknikal ICT Sekolah Negeri Kedah</p>
+
+                <!-- Top Contributor Module -->
+                <div class="lg:col-span-3 bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6">Penyedia Laporan Terbanyak</h2>
+                    <div id="top-contributors-container" class="text-center text-slate-500">Memuatkan data...</div>
                 </div>
             </div>
-        </header>
 
-        <!-- Year Filter Buttons & Loader -->
-        <div class="mb-6 flex flex-wrap items-center gap-4">
-            <div id="year-filter-container" class="flex flex-wrap items-center gap-2"></div>
-            <div id="inline-loader" class="hidden items-center gap-3 px-4 py-2 text-slate-600">
-                <div class="h-5 w-5 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600"></div>
-                <span class="font-semibold text-sm">Sedang memuatkan...</span>
+            <!-- PTIS Info Module -->
+            <div class="mt-8 bg-white p-8 rounded-xl shadow-lg">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Info PTIS Kedah</h2>
+                    <div id="ptis-total-container" class="mt-2 md:mt-0"></div>
+                </div>
+                <div id="ptis-info-container" class="text-center text-slate-500">Memuatkan data...</div>
             </div>
         </div>
+    </div>
 
-        <!-- Filters Section -->
-        <div class="bg-white p-6 rounded-xl shadow-md mb-8">
-            <h2 class="text-xl font-semibold mb-4 text-slate-800">Penapis Data</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div><label for="filter-daerah" class="block text-sm font-medium text-slate-600 mb-1">Daerah</label><select id="filter-daerah" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></select></div>
-                <div><label for="filter-zon" class="block text-sm font-medium text-slate-600 mb-1">Zon</label><select id="filter-zon" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></select></div>
-                <div><label for="filter-penyedia" class="block text-sm font-medium text-slate-600 mb-1">Penyedia Laporan</label><select id="filter-penyedia" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></select></div>
-                <div class="flex items-end"><button id="reset-filters" class="w-full bg-slate-600 text-white p-2 rounded-lg hover:bg-slate-700 transition duration-300">Set Semula</button></div>
+    <!-- Dashboard Page (Initially Hidden) -->
+    <div id="dashboard-page" class="hidden">
+        <div class="container mx-auto p-4 md:p-8">
+            <header class="bg-white p-5 rounded-xl shadow-md mb-8 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="bg-blue-600 text-white p-3 rounded-lg shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
+                    <div><h1 class="text-2xl font-bold text-slate-800">Dashboard S3PTIS</h1><p class="mt-1 text-sm text-slate-500">Pasukan Teknikal ICT Sekolah Negeri Kedah</p></div>
+                </div>
+                <button id="logout-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">Log Keluar</button>
+            </header>
+
+            <div class="mb-6 flex flex-wrap items-center gap-4">
+                <div id="year-filter-container" class="flex flex-wrap items-center gap-2"></div>
+                <div id="inline-loader" class="hidden items-center gap-3 px-4 py-2 text-slate-600"><div class="h-5 w-5 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600"></div><span class="font-semibold text-sm">Sedang memuatkan...</span></div>
             </div>
-        </div>
 
-        <!-- Analytics Modules Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            <div class="bg-white p-6 rounded-xl shadow-md flex flex-col justify-center items-center text-center"><h3 class="text-lg font-semibold text-slate-500">Jumlah Laporan</h3><p id="total-reports" class="text-5xl font-bold text-blue-600 mt-2">0</p></div>
-            <div class="bg-white p-6 rounded-xl shadow-md lg:col-span-2"><h3 class="text-lg font-semibold text-slate-800 mb-4">Jumlah Laporan Mengikut Daerah</h3><div class="h-64"><canvas id="districtChart"></canvas></div></div>
-            <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="text-lg font-semibold text-slate-800 mb-4">10 Perkhidmatan Tertinggi</h3><div class="h-80"><canvas id="topServicesChart"></canvas></div></div>
-                <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="text-lg font-semibold text-slate-800 mb-4">Jumlah Laporan Mengikut Bulan</h3><div class="h-80"><canvas id="monthChart"></canvas></div></div>
+            <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+                <h2 class="text-xl font-semibold mb-4 text-slate-800">Penapis Data</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div><label for="filter-daerah" class="block text-sm font-medium text-slate-600 mb-1">Daerah</label><select id="filter-daerah" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></select></div>
+                    <div><label for="filter-zon" class="block text-sm font-medium text-slate-600 mb-1">Zon</label><select id="filter-zon" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></select></div>
+                    <div><label for="filter-penyedia" class="block text-sm font-medium text-slate-600 mb-1">Penyedia Laporan</label><select id="filter-penyedia" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></select></div>
+                    <div class="flex items-end"><button id="reset-filters" class="w-full bg-slate-600 text-white p-2 rounded-lg hover:bg-slate-700 transition duration-300">Set Semula</button></div>
+                </div>
             </div>
-        </div>
 
-        <!-- Data Display Section -->
-        <div id="table-wrapper" class="bg-white rounded-xl shadow-md overflow-hidden hidden"><div class="overflow-x-auto"><table class="w-full table-fixed"><thead class="bg-slate-100 text-slate-600 uppercase text-xs"><tr><th class="w-12 text-center">Bil.</th><th class="w-1/5">Penyedia Laporan</th><th class="w-1/6">Daerah</th><th class="w-1/4 whitespace-normal">Nama Organisasi</th><th class="w-1/6">Tarikh Pelaksanaan</th><th class="w-auto whitespace-normal">Perkhidmatan</th><th class="w-28 text-center">Tindakan</th></tr></thead><tbody id="data-container" class="divide-y divide-slate-200 text-xs md:text-sm"></tbody></table></div></div>
-        <div id="no-data" class="hidden text-center py-20"><h3 class="text-2xl font-semibold text-slate-500">Tiada Data Ditemui</h3><p class="text-slate-400 mt-2">Sila laraskan penapis anda.</p></div>
-
-        <!-- Pagination Controls -->
-        <div id="pagination-controls" class="mt-6 flex justify-between items-center text-sm hidden">
-            <span id="pagination-info" class="text-slate-600"></span>
-            <div class="flex gap-2">
-                <button id="prev-page" class="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 font-semibold">Sebelum</button>
-                <button id="next-page" class="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 font-semibold">Seterusnya</button>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-md flex flex-col justify-center items-center text-center"><h3 class="text-lg font-semibold text-slate-500">Jumlah Laporan</h3><p id="total-reports" class="text-5xl font-bold text-blue-600 mt-2">0</p></div>
+                <div class="bg-white p-6 rounded-xl shadow-md lg:col-span-2"><h3 class="text-lg font-semibold text-slate-800 mb-4">Jumlah Laporan Mengikut Daerah</h3><div class="h-64"><canvas id="districtChart"></canvas></div></div>
+                <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="text-lg font-semibold text-slate-800 mb-4">10 Perkhidmatan Tertinggi</h3><div class="h-80"><canvas id="topServicesChart"></canvas></div></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="text-lg font-semibold text-slate-800 mb-4">Jumlah Laporan Mengikut Bulan</h3><div class="h-80"><canvas id="monthChart"></canvas></div></div>
+                </div>
             </div>
-        </div>
 
-        <!-- Details Modal -->
-        <div id="detailsModal" class="modal fixed inset-0 bg-black bg-opacity-60 z-50 hidden items-center justify-center p-4"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"><div class="p-5 border-b flex justify-between items-center"><h3 class="text-xl font-semibold text-slate-800">Butiran Lanjut Laporan</h3><button id="modalCloseBtn" class="text-3xl text-slate-400 hover:text-slate-600 transition-colors">&times;</button></div><div id="modalBody" class="p-6 space-y-4 overflow-y-auto"></div></div></div>
+            <div id="table-wrapper" class="bg-white rounded-xl shadow-md overflow-hidden hidden"><div class="overflow-x-auto"><table class="w-full table-fixed"><thead class="bg-slate-100 text-slate-600 uppercase text-xs"><tr><th class="w-12 text-center">Bil.</th><th class="w-1/5">Penyedia Laporan</th><th class="w-1/6">Daerah</th><th class="w-1/4 whitespace-normal">Nama Organisasi</th><th class="w-1/6">Tarikh Pelaksanaan</th><th class="w-auto whitespace-normal">Perkhidmatan</th><th class="w-28 text-center">Tindakan</th></tr></thead><tbody id="data-container" class="divide-y divide-slate-200 text-xs md:text-sm"></tbody></table></div></div>
+            <div id="no-data" class="hidden text-center py-20"><h3 class="text-2xl font-semibold text-slate-500">Tiada Data Ditemui</h3><p class="text-slate-400 mt-2">Sila laraskan penapis anda.</p></div>
+
+            <div id="pagination-controls" class="mt-6 flex justify-between items-center text-sm hidden"><span id="pagination-info" class="text-slate-600"></span><div class="flex gap-2"><button id="prev-page" class="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 font-semibold">Sebelum</button><button id="next-page" class="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 font-semibold">Seterusnya</button></div></div>
+            <div id="detailsModal" class="modal fixed inset-0 bg-black bg-opacity-60 z-50 hidden items-center justify-center p-4"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"><div class="p-5 border-b flex justify-between items-center"><h3 class="text-xl font-semibold text-slate-800">Butiran Lanjut Laporan</h3><button id="modalCloseBtn" class="text-3xl text-slate-400 hover:text-slate-600 transition-colors">&times;</button></div><div id="modalBody" class="p-6 space-y-4 overflow-y-auto"></div></div></div>
+        </div>
     </div>
 
     <script>
@@ -96,6 +118,15 @@
             const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7YBQJCycufHkL1TxSDDn0I77NZtgeZzH0Rc_ANYgSd0Pl7Ygo49S3F_PQARV26DBS/exec';
             
             // --- DOM ELEMENTS ---
+            const loginPage = document.getElementById('login-page');
+            const dashboardPage = document.getElementById('dashboard-page');
+            const loginForm = document.getElementById('login-form');
+            const loginError = document.getElementById('login-error');
+            const topContributorsContainer = document.getElementById('top-contributors-container');
+            const ptisInfoContainer = document.getElementById('ptis-info-container');
+            const ptisTotalContainer = document.getElementById('ptis-total-container');
+            const logoutBtn = document.getElementById('logout-btn');
+
             const dataContainer = document.getElementById('data-container');
             const inlineLoader = document.getElementById('inline-loader');
             const noDataMessage = document.getElementById('no-data');
@@ -120,7 +151,8 @@
             const nextPageBtn = document.getElementById('next-page');
 
             // --- STATE ---
-            let reportsForTable = []; // Data untuk jadual (maksimum 100)
+            let userAccess = null;
+            let reportsForTable = [];
             let currentPage = 1;
             const ROWS_PER_PAGE = 20;
             const MAX_TABLE_ROWS = 100;
@@ -130,24 +162,135 @@
 
             Chart.register(ChartDataLabels);
 
-            // --- FUNCTIONS ---
+            // --- LOGIN PAGE FUNCTIONS ---
+            async function initializeLoginPage() {
+                try {
+                    const response = await fetch(`${SCRIPT_URL}?view=login`);
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        renderTopContributors(result.data.topContributors);
+                        renderPtisAnalytics(result.data.ptisAnalytics);
+                    } else {
+                        topContributorsContainer.innerHTML = `<p class="text-red-500">Gagal memuatkan data penyumbang.</p>`;
+                        ptisInfoContainer.innerHTML = `<p class="text-red-500">Gagal memuatkan maklumat PTIS.</p>`;
+                    }
+                } catch (error) {
+                    console.error("Error fetching login page data:", error);
+                }
+            }
+
+            function renderTopContributors(contributors) {
+                let html = '<ul class="space-y-3">';
+                contributors.forEach((contributor, index) => {
+                    html += `<li class="flex items-center justify-between text-sm">
+                                <div>
+                                    <p class="font-semibold text-slate-700">${index + 1}. ${contributor.name}</p>
+                                    <p class="text-xs text-slate-500">[${contributor.zone}, ${contributor.district}]</p>
+                                </div>
+                                <span class="bg-blue-100 text-blue-800 font-bold text-xs px-2.5 py-1 rounded-full">${contributor.count} Laporan</span>
+                             </li>`;
+                });
+                html += '</ul>';
+                topContributorsContainer.innerHTML = html;
+            }
+
+            function renderPtisAnalytics(analytics) {
+                if (!analytics) {
+                    ptisInfoContainer.innerHTML = `<p class="text-red-500">Gagal memuatkan data analisis PTIS.</p>`;
+                    return;
+                }
+
+                ptisTotalContainer.innerHTML = `<div class="bg-blue-600 text-white py-2 px-4 rounded-lg text-center"><span class="font-semibold text-sm">Jumlah PTIS:</span> <span class="font-extrabold text-lg">${analytics.total}</span></div>`;
+
+                const createTable = (title, data) => {
+                    let tableHtml = `<div class="bg-slate-50 p-3 rounded-lg h-full">
+                                        <h4 class="font-bold text-slate-600 mb-2 text-xs">${title}</h4>
+                                        <table class="w-full text-xs"><tbody>`;
+                    const sortedData = Object.entries(data).sort((a, b) => b[1] - a[1]);
+                    sortedData.forEach(([key, value]) => {
+                        tableHtml += `<tr class="border-b border-slate-200 last:border-none">
+                                        <td class="py-1">${key || 'N/A'}</td>
+                                        <td class="py-1 text-right font-bold">${value}</td>
+                                      </tr>`;
+                    });
+                    tableHtml += `</tbody></table></div>`;
+                    return tableHtml;
+                };
+
+                let html = '<div class="grid grid-cols-1 gap-8 text-left">';
+                
+                const sortedDistricts = Object.keys(analytics.districts).sort();
+
+                for (const districtName of sortedDistricts) {
+                    const districtData = analytics.districts[districtName];
+                    html += `<div class="bg-slate-100 p-4 rounded-lg">
+                                <h3 class="text-lg font-bold text-slate-800 mb-4">${districtName} <span class="text-base font-semibold text-slate-500">(${districtData.total} ahli)</span></h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    ${createTable('Zon', districtData.byZone)}
+                                    ${createTable('Jantina', districtData.byGender)}
+                                    ${createTable('Peranan', districtData.byRole)}
+                                    ${createTable('Gred', districtData.byGrade)}
+                                </div>
+                             </div>`;
+                }
+
+                html += '</div>';
+                ptisInfoContainer.innerHTML = html;
+            }
+            
+            function handleLogin(e) {
+                e.preventDefault();
+                const username = loginForm.username.value.toLowerCase();
+                const password = loginForm.password.value.toLowerCase();
+
+                const accessLevels = {
+                    "baling": "Baling", "sik": "Sik", "langkawi": "Langkawi",
+                    "kubangpasu": "Kubang Pasu", "kotasetar": "Kota Setar", "pendang": "Pendang",
+                    "kualamuda": "Kuala Muda", "yan": "Yan", "padangterap": "Padang Terap",
+                    "kulimbb": "Kulim Bandar Baharu", "spmjpnk": "all"
+                };
+
+                if (accessLevels[username] && username === password) {
+                    userAccess = accessLevels[username];
+                    loginPage.classList.add('hidden');
+                    dashboardPage.classList.remove('hidden');
+                    initializeDashboard();
+                } else {
+                    loginError.textContent = 'Nama pengguna atau kata laluan tidak sah.';
+                    loginError.classList.remove('hidden');
+                }
+            }
+
+            function handleLogout() {
+                userAccess = null;
+                dashboardPage.classList.add('hidden');
+                loginPage.classList.remove('hidden');
+                loginForm.reset();
+                loginError.classList.add('hidden');
+            }
+
+            // --- DASHBOARD FUNCTIONS ---
             function toggleControls(disabled) {
                 Object.values(filters).forEach(f => f.disabled = disabled);
                 resetButton.disabled = disabled;
                 yearFilterContainer.querySelectorAll('button').forEach(btn => btn.disabled = disabled);
                 prevPageBtn.disabled = disabled;
                 nextPageBtn.disabled = disabled;
+                if (userAccess !== 'all') {
+                    filters.daerah.disabled = true;
+                }
             }
 
             async function fetchAndRenderData() {
                 inlineLoader.classList.remove('hidden');
                 inlineLoader.classList.add('flex');
                 toggleControls(true);
-                currentPage = 1; // Reset to first page on every new fetch
+                currentPage = 1;
 
                 const params = new URLSearchParams({
+                    view: 'dashboard',
                     year: selectedYear,
-                    daerah: filters.daerah.value,
+                    daerah: userAccess !== 'all' ? userAccess : filters.daerah.value,
                     zon: filters.zon.value,
                     penyedia: filters.penyedia.value,
                 });
@@ -163,13 +306,8 @@
                             .map(item => ({...item, tarikhPelaksanaan: item.tarikhPelaksanaan ? new Date(item.tarikhPelaksanaan) : null}))
                             .sort((a, b) => (b.tarikhPelaksanaan || 0) - (a.tarikhPelaksanaan || 0));
 
-                        // **PERUBAHAN DI SINI**
-                        // Analitik berdasarkan KESELURUHAN data yang ditapis
                         updateAnalyticsModules(allFilteredReports); 
-
-                        // Data untuk jadual dihadkan kepada 100 laporan terkini
                         reportsForTable = allFilteredReports.slice(0, MAX_TABLE_ROWS);
-
                         updateFilterDropdowns(result.data.filterOptions);
                         renderPage(currentPage);
                         
@@ -191,8 +329,7 @@
                 if (yearFilterContainer.children.length === 0) {
                     const createButton = (year, text) => {
                         const button = document.createElement('button');
-                        button.dataset.year = year;
-                        button.textContent = text;
+                        button.dataset.year = year; button.textContent = text;
                         button.className = 'year-btn px-4 py-2 rounded-lg font-semibold border border-slate-300 bg-white text-slate-700 hover:bg-slate-100';
                         yearFilterContainer.appendChild(button);
                     };
@@ -203,7 +340,7 @@
                 
                 const populateSelect = (el, opts, val) => {
                     el.innerHTML = '<option value="">Semua</option>';
-                    [...new Set(opts)].sort((a,b) => String(a).localeCompare(String(b))).forEach(opt => {
+                    opts.forEach(opt => {
                         const optionEl = document.createElement('option');
                         optionEl.value = opt; optionEl.textContent = opt;
                         el.appendChild(optionEl);
@@ -211,7 +348,7 @@
                     if (val) el.value = val;
                 };
 
-                populateSelect(filters.daerah, options.daerah, filters.daerah.value);
+                populateSelect(filters.daerah, options.daerah, userAccess !== 'all' ? userAccess : filters.daerah.value);
                 populateSelect(filters.zon, options.zon, filters.zon.value);
                 populateSelect(filters.penyedia, options.penyedia, filters.penyedia.value);
             }
@@ -220,7 +357,6 @@
                 const start = (page - 1) * ROWS_PER_PAGE;
                 const end = start + ROWS_PER_PAGE;
                 const paginatedItems = reportsForTable.slice(start, end);
-
                 renderTableRows(paginatedItems, start);
                 updatePaginationControls();
             }
@@ -241,16 +377,11 @@
             
             function updatePaginationControls() {
                 const totalRows = reportsForTable.length;
-                if (totalRows === 0) {
-                    paginationControls.classList.add('hidden');
-                    return;
-                }
+                if (totalRows === 0) { paginationControls.classList.add('hidden'); return; }
                 paginationControls.classList.remove('hidden');
-
                 const pageCount = Math.ceil(totalRows / ROWS_PER_PAGE);
                 const startRow = (currentPage - 1) * ROWS_PER_PAGE + 1;
                 const endRow = Math.min(currentPage * ROWS_PER_PAGE, totalRows);
-                
                 paginationInfo.textContent = `Memaparkan ${startRow}-${endRow} daripada ${totalRows} laporan`;
                 prevPageBtn.disabled = currentPage === 1;
                 nextPageBtn.disabled = currentPage === pageCount;
@@ -259,32 +390,16 @@
             function updateAnalyticsModules(data) {
                 totalReportsEl.textContent = data.length;
                 const generateColors = count => Array.from({length: count}, (_, i) => `hsla(${(360 / count * i) % 360}, 70%, 60%, 0.6)`);
-                
-                const createOrUpdateChart = (instance, canvas, type, data, options) => {
-                    if (instance) instance.destroy();
-                    return new Chart(canvas, { type, data, options });
-                };
-
+                const createOrUpdateChart = (instance, canvas, type, data, options) => { if (instance) instance.destroy(); return new Chart(canvas, { type, data, options }); };
                 const districtCounts = data.reduce((acc, item) => { if (item.daerah) acc[item.daerah] = (acc[item.daerah] || 0) + 1; return acc; }, {});
                 const sortedDistricts = Object.entries(districtCounts).sort((a,b) => b[1] - a[1]);
-                districtChartInstance = createOrUpdateChart(districtChartInstance, districtChartCanvas, 'bar', 
-                    { labels: sortedDistricts.map(e => e[0]), datasets: [{ data: sortedDistricts.map(e => e[1]), backgroundColor: generateColors(sortedDistricts.length) }] },
-                    { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', color: '#555', font: { weight: 'bold' } } } }
-                );
-
+                districtChartInstance = createOrUpdateChart(districtChartInstance, districtChartCanvas, 'bar', { labels: sortedDistricts.map(e => e[0]), datasets: [{ data: sortedDistricts.map(e => e[1]), backgroundColor: generateColors(sortedDistricts.length) }] }, { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', color: '#555', font: { weight: 'bold' } } } });
                 const serviceCounts = data.reduce((acc, item) => { if (item.perkhidmatan) acc[item.perkhidmatan] = (acc[item.perkhidmatan] || 0) + 1; return acc; }, {});
                 const topServices = Object.entries(serviceCounts).sort(([, a], [, b]) => b - a).slice(0, 10).reverse();
-                topServicesChartInstance = createOrUpdateChart(topServicesChartInstance, topServicesChartCanvas, 'bar',
-                    { labels: topServices.map(e => e[0]), datasets: [{ data: topServices.map(e => e[1]), backgroundColor: generateColors(topServices.length) }] },
-                    { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'end', color: '#555', font: { weight: 'bold' } } } }
-                );
-
+                topServicesChartInstance = createOrUpdateChart(topServicesChartInstance, topServicesChartCanvas, 'bar', { labels: topServices.map(e => e[0]), datasets: [{ data: topServices.map(e => e[1]), backgroundColor: generateColors(topServices.length) }] }, { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'end', color: '#555', font: { weight: 'bold' } } } });
                 const monthCounts = Array(12).fill(0);
                 data.forEach(item => { if (item.tarikhPelaksanaan) monthCounts[item.tarikhPelaksanaan.getMonth()]++; });
-                monthChartInstance = createOrUpdateChart(monthChartInstance, monthChartCanvas, 'line',
-                    { labels: monthLabels, datasets: [{ data: monthCounts, borderColor: 'rgba(37, 99, 235, 1)', backgroundColor: 'rgba(37, 99, 235, 0.2)', fill: true, tension: 0.3 }] },
-                    { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
-                );
+                monthChartInstance = createOrUpdateChart(monthChartInstance, monthChartCanvas, 'line', { labels: monthLabels, datasets: [{ data: monthCounts, borderColor: 'rgba(37, 99, 235, 1)', backgroundColor: 'rgba(37, 99, 235, 0.2)', fill: true, tension: 0.3 }] }, { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, datalabels: { display: false } } });
             }
 
             function showDetailsModal(uid) {
@@ -297,7 +412,7 @@
             }
             
             // --- EVENT LISTENERS ---
-            function setupEventListeners() {
+            function setupDashboardEventListeners() {
                 yearFilterContainer.addEventListener('click', (e) => {
                     const button = e.target.closest('.year-btn');
                     if (!button) return;
@@ -317,9 +432,11 @@
                 });
 
                 resetButton.addEventListener('click', () => {
-                    selectedYear = '';
-                    yearFilterContainer.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active'));
-                    yearFilterContainer.querySelector('button[data-year=""]').classList.add('active');
+                    if (userAccess === 'all') {
+                        selectedYear = '';
+                        yearFilterContainer.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active'));
+                        yearFilterContainer.querySelector('button[data-year=""]').classList.add('active');
+                    }
                     Object.values(filters).forEach(f => f.value = '');
                     fetchAndRenderData();
                 });
@@ -329,32 +446,22 @@
                     if (button) showDetailsModal(button.dataset.uid);
                 });
 
-                prevPageBtn.addEventListener('click', () => {
-                    if (currentPage > 1) {
-                        currentPage--;
-                        renderPage(currentPage);
-                    }
-                });
-
-                nextPageBtn.addEventListener('click', () => {
-                    const pageCount = Math.ceil(reportsForTable.length / ROWS_PER_PAGE);
-                    if (currentPage < pageCount) {
-                        currentPage++;
-                        renderPage(currentPage);
-                    }
-                });
-
+                prevPageBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderPage(currentPage); } });
+                nextPageBtn.addEventListener('click', () => { const pageCount = Math.ceil(reportsForTable.length / ROWS_PER_PAGE); if (currentPage < pageCount) { currentPage++; renderPage(currentPage); } });
                 const closeModal = () => { detailsModal.classList.add('hidden'); detailsModal.classList.remove('flex'); };
                 modalCloseBtn.addEventListener('click', closeModal);
                 detailsModal.addEventListener('click', (e) => { if (e.target === detailsModal) closeModal(); });
             }
             
             // --- INITIALIZATION ---
-            initializeApp();
-            async function initializeApp() {
-                await fetchAndRenderData();
-                setupEventListeners();
+            function initializeDashboard() {
+                fetchAndRenderData();
+                setupDashboardEventListeners();
             }
+            
+            loginForm.addEventListener('submit', handleLogin);
+            logoutBtn.addEventListener('click', handleLogout);
+            initializeLoginPage();
         });
     </script>
 </body>
