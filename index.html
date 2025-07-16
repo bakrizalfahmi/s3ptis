@@ -46,7 +46,6 @@
         <!-- Year Filter Buttons & Loader -->
         <div class="mb-6 flex flex-wrap items-center gap-4">
             <div id="year-filter-container" class="flex flex-wrap items-center gap-2"></div>
-            <!-- NEW INLINE LOADER -->
             <div id="inline-loader" class="hidden items-center gap-3 px-4 py-2 text-slate-600">
                 <div class="h-5 w-5 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600"></div>
                 <span class="font-semibold text-sm">Sedang memuatkan...</span>
@@ -78,6 +77,15 @@
         <div id="table-wrapper" class="bg-white rounded-xl shadow-md overflow-hidden hidden"><div class="overflow-x-auto"><table class="w-full table-fixed"><thead class="bg-slate-100 text-slate-600 uppercase text-xs"><tr><th class="w-12 text-center">Bil.</th><th class="w-1/5">Penyedia Laporan</th><th class="w-1/6">Daerah</th><th class="w-1/4 whitespace-normal">Nama Organisasi</th><th class="w-1/6">Tarikh Pelaksanaan</th><th class="w-auto whitespace-normal">Perkhidmatan</th><th class="w-28 text-center">Tindakan</th></tr></thead><tbody id="data-container" class="divide-y divide-slate-200 text-xs md:text-sm"></tbody></table></div></div>
         <div id="no-data" class="hidden text-center py-20"><h3 class="text-2xl font-semibold text-slate-500">Tiada Data Ditemui</h3><p class="text-slate-400 mt-2">Sila laraskan penapis anda.</p></div>
 
+        <!-- Pagination Controls -->
+        <div id="pagination-controls" class="mt-6 flex justify-between items-center text-sm hidden">
+            <span id="pagination-info" class="text-slate-600"></span>
+            <div class="flex gap-2">
+                <button id="prev-page" class="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 font-semibold">Sebelum</button>
+                <button id="next-page" class="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 font-semibold">Seterusnya</button>
+            </div>
+        </div>
+
         <!-- Details Modal -->
         <div id="detailsModal" class="modal fixed inset-0 bg-black bg-opacity-60 z-50 hidden items-center justify-center p-4"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"><div class="p-5 border-b flex justify-between items-center"><h3 class="text-xl font-semibold text-slate-800">Butiran Lanjut Laporan</h3><button id="modalCloseBtn" class="text-3xl text-slate-400 hover:text-slate-600 transition-colors">&times;</button></div><div id="modalBody" class="p-6 space-y-4 overflow-y-auto"></div></div></div>
     </div>
@@ -106,9 +114,16 @@
             const districtChartCanvas = document.getElementById('districtChart');
             const topServicesChartCanvas = document.getElementById('topServicesChart');
             const monthChartCanvas = document.getElementById('monthChart');
+            const paginationControls = document.getElementById('pagination-controls');
+            const paginationInfo = document.getElementById('pagination-info');
+            const prevPageBtn = document.getElementById('prev-page');
+            const nextPageBtn = document.getElementById('next-page');
 
             // --- STATE ---
-            let currentReports = [];
+            let reportsForTable = []; // Data untuk jadual (maksimum 100)
+            let currentPage = 1;
+            const ROWS_PER_PAGE = 20;
+            const MAX_TABLE_ROWS = 100;
             let selectedYear = '';
             let districtChartInstance, topServicesChartInstance, monthChartInstance;
             const monthLabels = ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogo", "Sep", "Okt", "Nov", "Dis"];
@@ -120,12 +135,15 @@
                 Object.values(filters).forEach(f => f.disabled = disabled);
                 resetButton.disabled = disabled;
                 yearFilterContainer.querySelectorAll('button').forEach(btn => btn.disabled = disabled);
+                prevPageBtn.disabled = disabled;
+                nextPageBtn.disabled = disabled;
             }
 
             async function fetchAndRenderData() {
                 inlineLoader.classList.remove('hidden');
                 inlineLoader.classList.add('flex');
                 toggleControls(true);
+                currentPage = 1; // Reset to first page on every new fetch
 
                 const params = new URLSearchParams({
                     year: selectedYear,
@@ -141,16 +159,27 @@
                     
                     const result = await response.json();
                     if (result.status === 'success') {
-                        currentReports = result.data.reports.map(item => ({...item, tarikhPelaksanaan: item.tarikhPelaksanaan ? new Date(item.tarikhPelaksanaan) : null}));
+                        const allFilteredReports = result.data.reports
+                            .map(item => ({...item, tarikhPelaksanaan: item.tarikhPelaksanaan ? new Date(item.tarikhPelaksanaan) : null}))
+                            .sort((a, b) => (b.tarikhPelaksanaan || 0) - (a.tarikhPelaksanaan || 0));
+
+                        // **PERUBAHAN DI SINI**
+                        // Analitik berdasarkan KESELURUHAN data yang ditapis
+                        updateAnalyticsModules(allFilteredReports); 
+
+                        // Data untuk jadual dihadkan kepada 100 laporan terkini
+                        reportsForTable = allFilteredReports.slice(0, MAX_TABLE_ROWS);
+
                         updateFilterDropdowns(result.data.filterOptions);
-                        renderData(currentReports);
-                        updateAnalyticsModules(currentReports);
+                        renderPage(currentPage);
+                        
                     } else { throw new Error(result.message || 'Gagal memuatkan data.'); }
                 } catch (error) {
                     console.error('Ralat memuatkan data:', error);
                     noDataMessage.innerHTML = `<h3 class="text-2xl font-semibold text-red-500">Gagal Memuatkan Data</h3><p class="text-slate-400 mt-2">${error.message}</p>`;
                     noDataMessage.style.display = 'block';
                     tableWrapper.style.display = 'none';
+                    paginationControls.classList.add('hidden');
                 } finally {
                     inlineLoader.classList.add('hidden');
                     inlineLoader.classList.remove('flex');
@@ -187,7 +216,16 @@
                 populateSelect(filters.penyedia, options.penyedia, filters.penyedia.value);
             }
 
-            function renderData(dataToRender) {
+            function renderPage(page) {
+                const start = (page - 1) * ROWS_PER_PAGE;
+                const end = start + ROWS_PER_PAGE;
+                const paginatedItems = reportsForTable.slice(start, end);
+
+                renderTableRows(paginatedItems, start);
+                updatePaginationControls();
+            }
+
+            function renderTableRows(dataToRender, startIndex) {
                 dataContainer.innerHTML = '';
                 tableWrapper.style.display = dataToRender.length === 0 ? 'none' : 'block';
                 noDataMessage.style.display = dataToRender.length === 0 ? 'block' : 'none';
@@ -196,11 +234,28 @@
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-slate-50 transition-colors';
                     const formattedDate = item.tarikhPelaksanaan ? item.tarikhPelaksanaan.toLocaleDateString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
-                    row.innerHTML = `<td class="text-center text-slate-500">${index + 1}</td><td class="whitespace-nowrap">${item.penyediaLaporan || '-'}</td><td class="whitespace-nowrap">${item.daerah || '-'}</td><td class="font-medium text-slate-800 whitespace-normal">${item.namaOrganisasi || '-'}</td><td class="whitespace-nowrap">${formattedDate}</td><td class="whitespace-normal">${item.perkhidmatan || '-'}</td><td class="text-center"><button class="view-details-btn bg-blue-500 text-white px-4 py-1 rounded-md hover:bg-blue-600 transition-colors text-xs font-semibold" data-uid="${item.uid}">Papar</button></td>`;
+                    row.innerHTML = `<td class="text-center text-slate-500">${startIndex + index + 1}</td><td class="whitespace-nowrap">${item.penyediaLaporan || '-'}</td><td class="whitespace-nowrap">${item.daerah || '-'}</td><td class="font-medium text-slate-800 whitespace-normal">${item.namaOrganisasi || '-'}</td><td class="whitespace-nowrap">${formattedDate}</td><td class="whitespace-normal">${item.perkhidmatan || '-'}</td><td class="text-center"><button class="view-details-btn bg-blue-500 text-white px-4 py-1 rounded-md hover:bg-blue-600 transition-colors text-xs font-semibold" data-uid="${item.uid}">Papar</button></td>`;
                     dataContainer.appendChild(row);
                 });
             }
             
+            function updatePaginationControls() {
+                const totalRows = reportsForTable.length;
+                if (totalRows === 0) {
+                    paginationControls.classList.add('hidden');
+                    return;
+                }
+                paginationControls.classList.remove('hidden');
+
+                const pageCount = Math.ceil(totalRows / ROWS_PER_PAGE);
+                const startRow = (currentPage - 1) * ROWS_PER_PAGE + 1;
+                const endRow = Math.min(currentPage * ROWS_PER_PAGE, totalRows);
+                
+                paginationInfo.textContent = `Memaparkan ${startRow}-${endRow} daripada ${totalRows} laporan`;
+                prevPageBtn.disabled = currentPage === 1;
+                nextPageBtn.disabled = currentPage === pageCount;
+            }
+
             function updateAnalyticsModules(data) {
                 totalReportsEl.textContent = data.length;
                 const generateColors = count => Array.from({length: count}, (_, i) => `hsla(${(360 / count * i) % 360}, 70%, 60%, 0.6)`);
@@ -233,7 +288,7 @@
             }
 
             function showDetailsModal(uid) {
-                const data = currentReports.find(item => item.uid === uid);
+                const data = reportsForTable.find(item => item.uid === uid);
                 if (!data) return;
                 const formattedDate = data.tarikhPelaksanaan ? data.tarikhPelaksanaan.toLocaleDateString('ms-MY', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A';
                 modalBody.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><div><p class="text-sm text-slate-500">Penyedia Laporan</p><p class="font-semibold text-slate-800">${data.penyediaLaporan || '-'}</p></div><div><p class="text-sm text-slate-500">Nama Organisasi</p><p class="font-semibold text-slate-800">${data.namaOrganisasi || '-'}</p></div><div><p class="text-sm text-slate-500">Daerah</p><p class="font-semibold text-slate-800">${data.daerah || '-'}</p></div><div><p class="text-sm text-slate-500">Zon</p><p class="font-semibold text-slate-800">${data.zon || '-'}</p></div><div><p class="text-sm text-slate-500">Tarikh Pelaksanaan</p><p class="font-semibold text-slate-800">${formattedDate}</p></div><div><p class="text-sm text-slate-500">Perkhidmatan</p><p class="font-semibold text-slate-800">${data.perkhidmatan || '-'}</p></div><div class="md:col-span-2"><p class="text-sm text-slate-500">Catatan</p><p class="font-semibold text-slate-800 bg-slate-50 p-3 rounded-md mt-1 whitespace-pre-wrap">${data.catatan || '-'}</p></div></div>`;
@@ -272,6 +327,21 @@
                 dataContainer.addEventListener('click', (e) => {
                     const button = e.target.closest('.view-details-btn');
                     if (button) showDetailsModal(button.dataset.uid);
+                });
+
+                prevPageBtn.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderPage(currentPage);
+                    }
+                });
+
+                nextPageBtn.addEventListener('click', () => {
+                    const pageCount = Math.ceil(reportsForTable.length / ROWS_PER_PAGE);
+                    if (currentPage < pageCount) {
+                        currentPage++;
+                        renderPage(currentPage);
+                    }
                 });
 
                 const closeModal = () => { detailsModal.classList.add('hidden'); detailsModal.classList.remove('flex'); };
