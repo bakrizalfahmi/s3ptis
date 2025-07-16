@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papan Pemuka S3PTIS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js and Datalabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #a8a29e; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #78716c; }
+        .loader { border: 8px solid #f3f3f3; border-radius: 50%; border-top: 8px solid #3b82f6; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        th, td { padding: 0.75rem 1rem; text-align: left; }
+        .modal { transition: opacity 0.3s ease; }
+        .year-btn { transition: all 0.2s ease-in-out; }
+        .year-btn.active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+    </style>
+</head>
+<body class="antialiased text-slate-700">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="bg-white p-5 rounded-xl shadow-md mb-8 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="bg-blue-600 text-white p-3 rounded-lg shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800">Dashboard S3PTIS</h1>
+                    <p class="mt-1 text-sm text-slate-500">Pasukan Teknikal ICT Sekolah Negeri Kedah</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Year Filter Buttons -->
+        <div id="year-filter-container" class="mb-6 flex flex-wrap items-center gap-2"></div>
+
+        <!-- Filters Section -->
+        <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-slate-800">Penapis Data</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div><label for="filter-daerah" class="block text-sm font-medium text-slate-600 mb-1">Daerah</label><select id="filter-daerah" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></select></div>
+                <div><label for="filter-zon" class="block text-sm font-medium text-slate-600 mb-1">Zon</label><select id="filter-zon" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></select></div>
+                <div><label for="filter-penyedia" class="block text-sm font-medium text-slate-600 mb-1">Penyedia Laporan</label><select id="filter-penyedia" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></select></div>
+                <div class="flex items-end"><button id="reset-filters" class="w-full bg-slate-600 text-white p-2 rounded-lg hover:bg-slate-700 transition duration-300">Set Semula</button></div>
+            </div>
+        </div>
+
+        <!-- Analytics Modules Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-md flex flex-col justify-center items-center text-center"><h3 class="text-lg font-semibold text-slate-500">Jumlah Laporan</h3><p id="total-reports" class="text-5xl font-bold text-blue-600 mt-2">0</p></div>
+            <div class="bg-white p-6 rounded-xl shadow-md lg:col-span-2"><h3 class="text-lg font-semibold text-slate-800 mb-4">Jumlah Laporan Mengikut Daerah</h3><div class="h-64"><canvas id="districtChart"></canvas></div></div>
+            <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="text-lg font-semibold text-slate-800 mb-4">10 Perkhidmatan Tertinggi</h3><div class="h-80"><canvas id="topServicesChart"></canvas></div></div>
+                <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="text-lg font-semibold text-slate-800 mb-4">Jumlah Laporan Mengikut Bulan</h3><div class="h-80"><canvas id="monthChart"></canvas></div></div>
+            </div>
+        </div>
+
+        <!-- Data Display Section -->
+        <div id="loader-container" class="flex justify-center items-center py-20"><div class="loader"></div></div>
+        <div id="table-wrapper" class="bg-white rounded-xl shadow-md overflow-hidden hidden"><div class="overflow-x-auto"><table class="w-full table-fixed"><thead class="bg-slate-100 text-slate-600 uppercase text-xs"><tr><th class="w-12 text-center">Bil.</th><th class="w-1/5">Penyedia Laporan</th><th class="w-1/6">Daerah</th><th class="w-1/4 whitespace-normal">Nama Organisasi</th><th class="w-1/6">Tarikh Pelaksanaan</th><th class="w-auto whitespace-normal">Perkhidmatan</th><th class="w-28 text-center">Tindakan</th></tr></thead><tbody id="data-container" class="divide-y divide-slate-200 text-xs md:text-sm"></tbody></table></div></div>
+        <div id="no-data" class="hidden text-center py-20"><h3 class="text-2xl font-semibold text-slate-500">Tiada Data Ditemui</h3><p class="text-slate-400 mt-2">Sila laraskan penapis anda.</p></div>
+
+        <!-- Details Modal -->
+        <div id="detailsModal" class="modal fixed inset-0 bg-black bg-opacity-60 z-50 hidden items-center justify-center p-4"><div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"><div class="p-5 border-b flex justify-between items-center"><h3 class="text-xl font-semibold text-slate-800">Butiran Lanjut Laporan</h3><button id="modalCloseBtn" class="text-3xl text-slate-400 hover:text-slate-600 transition-colors">&times;</button></div><div id="modalBody" class="p-6 space-y-4 overflow-y-auto"></div></div></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- CONFIGURATION ---
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7YBQJCycufHkL1TxSDDn0I77NZtgeZzH0Rc_ANYgSd0Pl7Ygo49S3F_PQARV26DBS/exec';
+            
+            // --- DOM ELEMENTS ---
+            const dataContainer = document.getElementById('data-container');
+            const loader = document.getElementById('loader-container');
+            const noDataMessage = document.getElementById('no-data');
+            const tableWrapper = document.getElementById('table-wrapper');
+            const yearFilterContainer = document.getElementById('year-filter-container');
+            const filters = {
+                daerah: document.getElementById('filter-daerah'),
+                zon: document.getElementById('filter-zon'),
+                penyedia: document.getElementById('filter-penyedia'),
+            };
+            const resetButton = document.getElementById('reset-filters');
+            const modalBody = document.getElementById('modalBody');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+            const detailsModal = document.getElementById('detailsModal');
+            const totalReportsEl = document.getElementById('total-reports');
+            const districtChartCanvas = document.getElementById('districtChart');
+            const topServicesChartCanvas = document.getElementById('topServicesChart');
+            const monthChartCanvas = document.getElementById('monthChart');
+
+            // --- STATE ---
+            let currentReports = [];
+            let selectedYear = '';
+            let districtChartInstance, topServicesChartInstance, monthChartInstance;
+            const monthLabels = ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogo", "Sep", "Okt", "Nov", "Dis"];
+
+            Chart.register(ChartDataLabels);
+
+            // --- FUNCTIONS ---
+
+            async function fetchAndRenderData() {
+                loader.style.display = 'flex';
+                tableWrapper.style.display = 'none';
+                noDataMessage.style.display = 'none';
+
+                const params = new URLSearchParams({
+                    year: selectedYear,
+                    daerah: filters.daerah.value,
+                    zon: filters.zon.value,
+                    penyedia: filters.penyedia.value,
+                });
+                for(let p of [...params.entries()]){ if(!p[1]) params.delete(p[0]); }
+
+                try {
+                    const response = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+                    if (!response.ok) throw new Error(`Ralat HTTP! Status: ${response.status}`);
+                    
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        currentReports = result.data.reports.map(item => ({...item, tarikhPelaksanaan: item.tarikhPelaksanaan ? new Date(item.tarikhPelaksanaan) : null}));
+                        updateFilterDropdowns(result.data.filterOptions);
+                        renderData(currentReports);
+                        updateAnalyticsModules(currentReports);
+                    } else { throw new Error(result.message || 'Gagal memuatkan data.'); }
+                } catch (error) {
+                    console.error('Ralat memuatkan data:', error);
+                    noDataMessage.innerHTML = `<h3 class="text-2xl font-semibold text-red-500">Gagal Memuatkan Data</h3><p class="text-slate-400 mt-2">${error.message}</p>`;
+                    noDataMessage.style.display = 'block';
+                } finally {
+                    loader.style.display = 'none';
+                }
+            }
+            
+            function updateFilterDropdowns(options) {
+                if (yearFilterContainer.children.length === 0) {
+                    const createButton = (year, text) => {
+                        const button = document.createElement('button');
+                        button.dataset.year = year;
+                        button.textContent = text;
+                        button.className = 'year-btn px-4 py-2 rounded-lg font-semibold border border-slate-300 bg-white text-slate-700 hover:bg-slate-100';
+                        yearFilterContainer.appendChild(button);
+                    };
+                    createButton('', 'Semua Tahun');
+                    options.years.forEach(year => createButton(String(year), String(year)));
+                    yearFilterContainer.querySelector(`button[data-year="${selectedYear}"]`).classList.add('active');
+                }
+                
+                const populateSelect = (el, opts, val) => {
+                    el.innerHTML = '<option value="">Semua</option>';
+                    [...new Set(opts)].sort((a,b) => String(a).localeCompare(String(b))).forEach(opt => {
+                        const optionEl = document.createElement('option');
+                        optionEl.value = opt; optionEl.textContent = opt;
+                        el.appendChild(optionEl);
+                    });
+                    if (val) el.value = val;
+                };
+
+                populateSelect(filters.daerah, options.daerah, filters.daerah.value);
+                populateSelect(filters.zon, options.zon, filters.zon.value);
+                populateSelect(filters.penyedia, options.penyedia, filters.penyedia.value);
+            }
+
+            function renderData(dataToRender) {
+                dataContainer.innerHTML = '';
+                tableWrapper.style.display = dataToRender.length === 0 ? 'none' : 'block';
+                noDataMessage.style.display = dataToRender.length === 0 ? 'block' : 'none';
+                
+                dataToRender.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-50 transition-colors';
+                    const formattedDate = item.tarikhPelaksanaan ? item.tarikhPelaksanaan.toLocaleDateString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+                    row.innerHTML = `<td class="text-center text-slate-500">${index + 1}</td><td class="whitespace-nowrap">${item.penyediaLaporan || '-'}</td><td class="whitespace-nowrap">${item.daerah || '-'}</td><td class="font-medium text-slate-800 whitespace-normal">${item.namaOrganisasi || '-'}</td><td class="whitespace-nowrap">${formattedDate}</td><td class="whitespace-normal">${item.perkhidmatan || '-'}</td><td class="text-center"><button class="view-details-btn bg-blue-500 text-white px-4 py-1 rounded-md hover:bg-blue-600 transition-colors text-xs font-semibold" data-uid="${item.uid}">Papar</button></td>`;
+                    dataContainer.appendChild(row);
+                });
+            }
+            
+            function updateAnalyticsModules(data) {
+                totalReportsEl.textContent = data.length;
+                const generateColors = count => Array.from({length: count}, (_, i) => `hsla(${(360 / count * i) % 360}, 70%, 60%, 0.6)`);
+                
+                const createOrUpdateChart = (instance, canvas, type, data, options) => {
+                    if (instance) instance.destroy();
+                    return new Chart(canvas, { type, data, options });
+                };
+
+                const districtCounts = data.reduce((acc, item) => { if (item.daerah) acc[item.daerah] = (acc[item.daerah] || 0) + 1; return acc; }, {});
+                const sortedDistricts = Object.entries(districtCounts).sort((a,b) => b[1] - a[1]);
+                districtChartInstance = createOrUpdateChart(districtChartInstance, districtChartCanvas, 'bar', 
+                    { labels: sortedDistricts.map(e => e[0]), datasets: [{ data: sortedDistricts.map(e => e[1]), backgroundColor: generateColors(sortedDistricts.length) }] },
+                    { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', color: '#555', font: { weight: 'bold' } } } }
+                );
+
+                const serviceCounts = data.reduce((acc, item) => { if (item.perkhidmatan) acc[item.perkhidmatan] = (acc[item.perkhidmatan] || 0) + 1; return acc; }, {});
+                const topServices = Object.entries(serviceCounts).sort(([, a], [, b]) => b - a).slice(0, 10).reverse();
+                topServicesChartInstance = createOrUpdateChart(topServicesChartInstance, topServicesChartCanvas, 'bar',
+                    { labels: topServices.map(e => e[0]), datasets: [{ data: topServices.map(e => e[1]), backgroundColor: generateColors(topServices.length) }] },
+                    { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'end', color: '#555', font: { weight: 'bold' } } } }
+                );
+
+                const monthCounts = Array(12).fill(0);
+                data.forEach(item => { if (item.tarikhPelaksanaan) monthCounts[item.tarikhPelaksanaan.getMonth()]++; });
+                monthChartInstance = createOrUpdateChart(monthChartInstance, monthChartCanvas, 'line',
+                    { labels: monthLabels, datasets: [{ data: monthCounts, borderColor: 'rgba(37, 99, 235, 1)', backgroundColor: 'rgba(37, 99, 235, 0.2)', fill: true, tension: 0.3 }] },
+                    { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
+                );
+            }
+
+            function showDetailsModal(uid) {
+                const data = currentReports.find(item => item.uid === uid);
+                if (!data) return;
+                const formattedDate = data.tarikhPelaksanaan ? data.tarikhPelaksanaan.toLocaleDateString('ms-MY', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A';
+                modalBody.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><div><p class="text-sm text-slate-500">Penyedia Laporan</p><p class="font-semibold text-slate-800">${data.penyediaLaporan || '-'}</p></div><div><p class="text-sm text-slate-500">Nama Organisasi</p><p class="font-semibold text-slate-800">${data.namaOrganisasi || '-'}</p></div><div><p class="text-sm text-slate-500">Daerah</p><p class="font-semibold text-slate-800">${data.daerah || '-'}</p></div><div><p class="text-sm text-slate-500">Zon</p><p class="font-semibold text-slate-800">${data.zon || '-'}</p></div><div><p class="text-sm text-slate-500">Tarikh Pelaksanaan</p><p class="font-semibold text-slate-800">${formattedDate}</p></div><div><p class="text-sm text-slate-500">Perkhidmatan</p><p class="font-semibold text-slate-800">${data.perkhidmatan || '-'}</p></div><div class="md:col-span-2"><p class="text-sm text-slate-500">Catatan</p><p class="font-semibold text-slate-800 bg-slate-50 p-3 rounded-md mt-1 whitespace-pre-wrap">${data.catatan || '-'}</p></div></div>`;
+                detailsModal.classList.remove('hidden');
+                detailsModal.classList.add('flex');
+            }
+            
+            // --- EVENT LISTENERS ---
+            function setupEventListeners() {
+                yearFilterContainer.addEventListener('click', (e) => {
+                    const button = e.target.closest('.year-btn');
+                    if (!button) return;
+                    selectedYear = button.dataset.year;
+                    yearFilterContainer.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    Object.values(filters).forEach(f => f.value = '');
+                    fetchAndRenderData();
+                });
+
+                Object.values(filters).forEach(filter => {
+                    filter.addEventListener('change', () => {
+                        if (filter.id === 'filter-daerah') { filters.zon.value = ''; filters.penyedia.value = ''; }
+                        if (filter.id === 'filter-zon') { filters.penyedia.value = ''; }
+                        fetchAndRenderData();
+                    });
+                });
+
+                resetButton.addEventListener('click', () => {
+                    selectedYear = '';
+                    yearFilterContainer.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active'));
+                    yearFilterContainer.querySelector('button[data-year=""]').classList.add('active');
+                    Object.values(filters).forEach(f => f.value = '');
+                    fetchAndRenderData();
+                });
+
+                dataContainer.addEventListener('click', (e) => {
+                    const button = e.target.closest('.view-details-btn');
+                    if (button) showDetailsModal(button.dataset.uid);
+                });
+
+                const closeModal = () => { detailsModal.classList.add('hidden'); detailsModal.classList.remove('flex'); };
+                modalCloseBtn.addEventListener('click', closeModal);
+                detailsModal.addEventListener('click', (e) => { if (e.target === detailsModal) closeModal(); });
+            }
+            
+            // --- INITIALIZATION ---
+            initializeApp();
+            async function initializeApp() {
+                await fetchAndRenderData();
+                setupEventListeners();
+            }
+        });
+    </script>
+</body>
+</html>
