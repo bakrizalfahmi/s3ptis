@@ -67,6 +67,9 @@
                 <div id="ptis-info-container" class="text-center text-slate-500">Memuatkan data...</div>
             </div>
         </div>
+        <footer class="text-center py-8 text-sm text-slate-500">
+            © 2025 Hak Cipta Terpelihara. PTIS Kedah
+        </footer>
     </div>
 
     <!-- Dashboard Page (Initially Hidden) -->
@@ -180,14 +183,17 @@
             }
 
             function renderTopContributors(contributors) {
-                let html = '<ul class="space-y-3">';
+                let html = '<ul class="space-y-4">';
                 contributors.forEach((contributor, index) => {
                     html += `<li class="flex items-center justify-between text-sm">
-                                <div>
-                                    <p class="font-semibold text-slate-700">${index + 1}. ${contributor.name}</p>
-                                    <p class="text-xs text-slate-500">[${contributor.zone}, ${contributor.district}]</p>
+                                <div class="flex items-start">
+                                    <span class="font-bold text-slate-500 w-8 flex-shrink-0 text-left pt-0.5">${index + 1}.</span>
+                                    <div>
+                                        <p class="font-semibold text-slate-500 text-left">${contributor.name}</p>
+                                        <p class="text-xs text-slate-500 text-left">[${contributor.zone}, ${contributor.district}]</p>
+                                    </div>
                                 </div>
-                                <span class="bg-blue-100 text-blue-800 font-bold text-xs px-2.5 py-1 rounded-full">${contributor.count} Laporan</span>
+                                <span class="bg-blue-100 text-blue-800 font-bold text-xs px-2.5 py-1 rounded-full flex-shrink-0 ml-4">${contributor.count} Laporan</span>
                              </li>`;
                 });
                 html += '</ul>';
@@ -195,7 +201,8 @@
             }
 
             function renderPtisAnalytics(analytics) {
-                if (!analytics) {
+                // **PERUBAHAN DI SINI: Pemeriksaan data yang lebih selamat**
+                if (!analytics || !analytics.districts) {
                     ptisInfoContainer.innerHTML = `<p class="text-red-500">Gagal memuatkan data analisis PTIS.</p>`;
                     return;
                 }
@@ -203,27 +210,49 @@
                 ptisTotalContainer.innerHTML = `<div class="bg-blue-600 text-white py-2 px-4 rounded-lg text-center"><span class="font-semibold text-sm">Jumlah PTIS:</span> <span class="font-extrabold text-lg">${analytics.total}</span></div>`;
 
                 const createTable = (title, data) => {
+                    // Pemeriksaan tambahan untuk memastikan 'data' tidak null/undefined
+                    if (!data) return ''; 
+                    
                     let tableHtml = `<div class="bg-slate-50 p-3 rounded-lg h-full">
                                         <h4 class="font-bold text-slate-600 mb-2 text-xs">${title}</h4>
                                         <table class="w-full text-xs"><tbody>`;
+                    
                     const sortedData = Object.entries(data).sort((a, b) => b[1] - a[1]);
-                    sortedData.forEach(([key, value]) => {
-                        tableHtml += `<tr class="border-b border-slate-200 last:border-none">
-                                        <td class="py-1">${key || 'N/A'}</td>
-                                        <td class="py-1 text-right font-bold">${value}</td>
-                                      </tr>`;
-                    });
+
+                    if (sortedData.length === 0) {
+                         tableHtml += `<tr><td class="py-1 text-slate-400">Tiada data</td></tr>`;
+                    } else {
+                        sortedData.forEach(([key, value]) => {
+                            tableHtml += `<tr class="border-b border-slate-200 last:border-none">
+                                            <td class="py-1">${key || 'N/A'}</td>
+                                            <td class="py-1 text-right font-bold">${value}</td>
+                                          </tr>`;
+                        });
+                    }
+
                     tableHtml += `</tbody></table></div>`;
                     return tableHtml;
                 };
 
-                let html = '<div class="grid grid-cols-1 gap-8 text-left">';
-                
-                const sortedDistricts = Object.keys(analytics.districts).sort();
+                // **PERUBAHAN DI SINI: Pemeriksaan data untuk rumusan**
+                const summaryHtml = `
+                    <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4">Rumusan Keseluruhan</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            ${createTable('Jantina', analytics.byGender)}
+                            ${createTable('Peranan', analytics.byRole)}
+                            ${createTable('Gred', analytics.byGrade)}
+                        </div>
+                    </div>`;
 
-                for (const districtName of sortedDistricts) {
+                const allDistrictNames = Object.keys(analytics.districts);
+                const spmDistrictName = allDistrictNames.find(name => name.toUpperCase().includes('SPM'));
+                const otherDistrictNames = allDistrictNames.filter(name => name !== spmDistrictName).sort();
+
+                let districtsHtml = '';
+                for (const districtName of otherDistrictNames) {
                     const districtData = analytics.districts[districtName];
-                    html += `<div class="bg-slate-100 p-4 rounded-lg">
+                    districtsHtml += `<div class="bg-slate-100 p-4 rounded-lg">
                                 <h3 class="text-lg font-bold text-slate-800 mb-4">${districtName} <span class="text-base font-semibold text-slate-500">(${districtData.total} ahli)</span></h3>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     ${createTable('Zon', districtData.byZone)}
@@ -233,9 +262,20 @@
                                 </div>
                              </div>`;
                 }
+                if (spmDistrictName) {
+                    const districtData = analytics.districts[spmDistrictName];
+                    districtsHtml += `<div class="bg-slate-100 p-4 rounded-lg">
+                                <h3 class="text-lg font-bold text-slate-800 mb-4">${spmDistrictName} <span class="text-base font-semibold text-slate-500">(${districtData.total} ahli)</span></h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    ${createTable('Zon', districtData.byZone)}
+                                    ${createTable('Jantina', districtData.byGender)}
+                                    ${createTable('Peranan', districtData.byRole)}
+                                    ${createTable('Gred', districtData.byGrade)}
+                                </div>
+                             </div>`;
+                }
 
-                html += '</div>';
-                ptisInfoContainer.innerHTML = html;
+                ptisInfoContainer.innerHTML = `<div class="grid grid-cols-1 gap-8 text-left">${summaryHtml}${districtsHtml}</div>`;
             }
             
             function handleLogin(e) {
